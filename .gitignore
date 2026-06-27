@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+downloads/
+lib/
+
+# Virtual environments
+venv/
+ENV/
+env/
+.venv
+
+# ROS
+install/
+build/
+log/
+.colcon/
+
+# Environment variables
+.env
+.vscode/
+.devcontainer
