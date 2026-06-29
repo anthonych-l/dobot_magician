@@ -44,7 +44,7 @@ class Message:
         params = bytes[5:-1]
         checksum = bytes[-1]
 
-        if id==10 or id==20 or id==13:
+        if id==10 or id==20 or id==13 or id==246:
             verified = Message.verify_checksum([id] + [control] + params, checksum)
 
             if verified:

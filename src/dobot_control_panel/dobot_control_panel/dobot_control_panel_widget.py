@@ -13,7 +13,7 @@ from python_qt_binding.QtCore import Qt, QTimer, qWarning, Slot, QProcess
 from python_qt_binding.QtGui import QIcon
 from python_qt_binding.QtWidgets import QHeaderView, QMenu, QTreeWidgetItem, QWidget, QVBoxLayout, QSizePolicy
 from rqt_py_common.message_helpers import get_message_class
-from PyQt5.QtWidgets import QMessageBox
+from PyQt5.QtWidgets import QMessageBox, QFileDialog
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 import subprocess
@@ -116,6 +116,14 @@ class DobotControlPanel(QWidget):
         self.GripperClose.pressed.connect(self.close_gripper)
         self.SuctionCupTurnOn.pressed.connect(self.turn_on_suction_cup)
         self.SuctionCupTurnOff.pressed.connect(self.turn_off_suction_cup)
+        self.LaserTurnOn.pressed.connect(self.turn_on_laser)
+        self.LaserTurnOff.pressed.connect(self.turn_off_laser)
+
+        # Laser Engraver Tab
+        self.engraver_image_path = ""
+        if hasattr(self, 'SelectImageButton'):
+            self.SelectImageButton.pressed.connect(self.select_laser_image)
+            self.StartEngraverButton.pressed.connect(self.start_laser_engraver)
 
         # Speed Tab
         self.Joint1VelSlider.valueChanged.connect(lambda:self.valuechange_joints(self.JT1Vel))
@@ -309,6 +317,60 @@ class DobotControlPanel(QWidget):
         subprocess.Popen(
             command, universal_newlines=True, shell=True,
             stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()
+
+    def turn_on_laser(self):
+        command = 'ros2 service call /dobot_laser_service dobot_msgs/srv/LaserControl "{enable_laser: true}"'
+        subprocess.Popen(
+            command, universal_newlines=True, shell=True,
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()
+
+    def turn_off_laser(self):
+        command = 'ros2 service call /dobot_laser_service dobot_msgs/srv/LaserControl "{enable_laser: false}"'
+        subprocess.Popen(
+            command, universal_newlines=True, shell=True,
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()
+
+    def select_laser_image(self):
+        options = QFileDialog.Options()
+        file_name, _ = QFileDialog.getOpenFileName(self, "Select Image", "", "Images (*.png *.jpg *.jpeg *.bmp)", options=options)
+        if file_name:
+            self.engraver_image_path = file_name
+            self.ImagePathLabel.setText(file_name)
+            pixmap = QPixmap(file_name)
+            self.PreviewImageLabel.setPixmap(pixmap)
+
+    def start_laser_engraver(self):
+        if not self.engraver_image_path:
+            msg = QMessageBox()
+            msg.setIcon(QMessageBox.Warning)
+            msg.setText("No Image Selected")
+            msg.setInformativeText("Please select an image first.")
+            msg.exec_()
+            return
+
+        size = self.SizeSpinBox.value()
+        offset_x = self.OffsetXSpinBox.value()
+        offset_y = self.OffsetYSpinBox.value()
+        z_focal = self.ZFocalSpinBox.value()
+        z_safe = self.ZSafeSpinBox.value()
+        coord_vel = getattr(self, "CoordVelocitySpinBox", type('Dummy', (), {'value': lambda: 50.0})()).value()
+        coord_acc = getattr(self, "CoordAccelerationSpinBox", type('Dummy', (), {'value': lambda: 50.0})()).value()
+
+        command = (f'ros2 run dobot_move laser_engraver --ros-args '
+                   f'-p image_path:="{self.engraver_image_path}" '
+                   f'-p size_mm:={size} '
+                   f'-p offset_x:={offset_x} '
+                   f'-p offset_y:={offset_y} '
+                   f'-p z_focal:={z_focal} '
+                   f'-p z_safe:={z_safe} '
+                   f'-p coord_velocity:={coord_vel} '
+                   f'-p coord_acceleration:={coord_acc}')
+        
+        self._node.get_logger().info(f"Starting engraver: {command}")
+        
+        subprocess.Popen(
+            command, universal_newlines=True, shell=True,
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
     def valuechange_joints(self, field):
         if field.objectName() == "JT1Vel":

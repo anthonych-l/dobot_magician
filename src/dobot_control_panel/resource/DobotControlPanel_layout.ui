@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8"?>
+<?xml version='1.0' encoding='utf-8'?>
 <ui version="4.0">
  <class>DobotControlPanel</class>
  <widget class="QWidget" name="DobotControlPanel">
@@ -7,26 +7,26 @@
     <x>0</x>
     <y>0</y>
     <width>750</width>
-    <height>515</height>
+    <height>600</height>
    </rect>
   </property>
   <property name="minimumSize">
    <size>
     <width>750</width>
-    <height>515</height>
+    <height>600</height>
    </size>
   </property>
   <property name="maximumSize">
    <size>
     <width>750</width>
-    <height>515</height>
+    <height>600</height>
    </size>
   </property>
   <property name="windowTitle">
    <string>Form</string>
   </property>
   <property name="styleSheet">
-   <string notr="true"/>
+   <string notr="true" />
   </property>
   <widget class="QTabWidget" name="Root">
    <property name="geometry">
@@ -34,19 +34,19 @@
      <x>0</x>
      <y>0</y>
      <width>740</width>
-     <height>500</height>
+     <height>580</height>
     </rect>
    </property>
    <property name="minimumSize">
     <size>
      <width>740</width>
-     <height>500</height>
+     <height>580</height>
     </size>
    </property>
    <property name="maximumSize">
     <size>
      <width>740</width>
-     <height>500</height>
+     <height>580</height>
     </size>
    </property>
    <property name="font">
@@ -312,7 +312,7 @@
          </font>
         </property>
         <property name="styleSheet">
-         <string notr="true"/>
+         <string notr="true" />
         </property>
         <property name="text">
          <string>+</string>
@@ -340,10 +340,10 @@
       <bool>false</bool>
      </property>
      <property name="styleSheet">
-      <string notr="true"/>
+      <string notr="true" />
      </property>
      <property name="text">
-      <string/>
+      <string />
      </property>
      <property name="icon">
       <iconset>
@@ -414,7 +414,7 @@
       <string notr="true">border-radius: 25px;</string>
      </property>
      <property name="text">
-      <string/>
+      <string />
      </property>
      <property name="icon">
       <iconset>
@@ -437,7 +437,7 @@
       </rect>
      </property>
      <property name="text">
-      <string/>
+      <string />
      </property>
      <property name="pixmap">
       <pixmap>images/magician_gui_image.png</pixmap>
@@ -528,7 +528,7 @@
       </rect>
      </property>
      <property name="text">
-      <string/>
+      <string />
      </property>
      <property name="pixmap">
       <pixmap>images/coordinate_system.png</pixmap>
@@ -556,7 +556,7 @@
          </font>
         </property>
         <property name="text">
-         <string/>
+         <string />
         </property>
         <property name="alignment">
          <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -572,7 +572,7 @@
          </font>
         </property>
         <property name="text">
-         <string/>
+         <string />
         </property>
         <property name="alignment">
          <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -588,7 +588,7 @@
          </font>
         </property>
         <property name="text">
-         <string/>
+         <string />
         </property>
         <property name="alignment">
          <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -604,7 +604,7 @@
          </font>
         </property>
         <property name="text">
-         <string/>
+         <string />
         </property>
         <property name="alignment">
          <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -631,7 +631,7 @@
          </font>
         </property>
         <property name="text">
-         <string/>
+         <string />
         </property>
         <property name="alignment">
          <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -649,7 +649,7 @@
          <enum>Qt::LeftToRight</enum>
         </property>
         <property name="text">
-         <string/>
+         <string />
         </property>
         <property name="alignment">
          <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -664,7 +664,7 @@
          </font>
         </property>
         <property name="text">
-         <string/>
+         <string />
         </property>
         <property name="alignment">
          <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -679,7 +679,7 @@
          </font>
         </property>
         <property name="text">
-         <string/>
+         <string />
         </property>
         <property name="alignment">
          <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -984,7 +984,7 @@
      <property name="geometry">
       <rect>
        <x>10</x>
-       <y>240</y>
+       <y>160</y>
        <width>161</width>
        <height>61</height>
       </rect>
@@ -1004,7 +1004,7 @@
      <property name="geometry">
       <rect>
        <x>80</x>
-       <y>100</y>
+       <y>60</y>
        <width>110</width>
        <height>50</height>
       </rect>
@@ -1017,7 +1017,7 @@
      <property name="geometry">
       <rect>
        <x>560</x>
-       <y>100</y>
+       <y>60</y>
        <width>110</width>
        <height>50</height>
       </rect>
@@ -1030,7 +1030,7 @@
      <property name="geometry">
       <rect>
        <x>80</x>
-       <y>340</y>
+       <y>210</y>
        <width>110</width>
        <height>50</height>
       </rect>
@@ -1043,7 +1043,7 @@
      <property name="geometry">
       <rect>
        <x>560</x>
-       <y>340</y>
+       <y>210</y>
        <width>110</width>
        <height>50</height>
       </rect>
@@ -1056,13 +1056,13 @@
      <property name="geometry">
       <rect>
        <x>270</x>
-       <y>10</y>
-       <width>201</width>
-       <height>191</height>
+       <y>0</y>
+       <width>160</width>
+       <height>150</height>
       </rect>
      </property>
      <property name="text">
-      <string/>
+      <string />
      </property>
      <property name="pixmap">
       <pixmap>images/gripper.png</pixmap>
@@ -1075,13 +1075,13 @@
      <property name="geometry">
       <rect>
        <x>280</x>
-       <y>250</y>
-       <width>181</width>
-       <height>201</height>
+       <y>150</y>
+       <width>150</width>
+       <height>160</height>
       </rect>
      </property>
      <property name="text">
-      <string/>
+      <string />
      </property>
      <property name="pixmap">
       <pixmap>images/suction_cup.png</pixmap>
@@ -1094,7 +1094,7 @@
      <property name="geometry">
       <rect>
        <x>7</x>
-       <y>220</y>
+       <y>140</y>
        <width>721</width>
        <height>20</height>
       </rect>
@@ -1103,7 +1103,62 @@
       <enum>Qt::Horizontal</enum>
      </property>
     </widget>
-   </widget>
+   <widget class="Line" name="ToolTabHLine2">
+     <property name="geometry">
+      <rect>
+       <x>7</x>
+       <y>300</y>
+       <width>721</width>
+       <height>20</height>
+      </rect>
+     </property>
+     <property name="orientation">
+      <enum>Qt::Horizontal</enum>
+     </property>
+    </widget><widget class="QLabel" name="LaserLabel">
+     <property name="geometry">
+      <rect>
+       <x>20</x>
+       <y>320</y>
+       <width>121</width>
+       <height>51</height>
+      </rect>
+     </property>
+     <property name="font">
+      <font>
+       <pointsize>20</pointsize>
+       <weight>75</weight>
+       <bold>true</bold>
+      </font>
+     </property>
+     <property name="text">
+      <string>Laser</string>
+     </property>
+    </widget><widget class="QPushButton" name="LaserTurnOn">
+     <property name="geometry">
+      <rect>
+       <x>80</x>
+       <y>370</y>
+       <width>110</width>
+       <height>50</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>TURN ON</string>
+     </property>
+    </widget><widget class="QPushButton" name="LaserTurnOff">
+     <property name="geometry">
+      <rect>
+       <x>560</x>
+       <y>370</y>
+       <width>110</width>
+       <height>50</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>TURN OFF</string>
+     </property>
+    </widget></widget>
    <widget class="QWidget" name="SpeedTab">
     <attribute name="title">
      <string>Speed</string>
@@ -1452,7 +1507,7 @@
       </rect>
      </property>
      <property name="text">
-      <string/>
+      <string />
      </property>
      <property name="pixmap">
       <pixmap>images/velocity.png</pixmap>
@@ -1862,7 +1917,7 @@
       </rect>
      </property>
      <property name="text">
-      <string/>
+      <string />
      </property>
      <property name="pixmap">
       <pixmap>images/settings.png</pixmap>
@@ -1894,7 +1949,7 @@
       </rect>
      </property>
      <property name="text">
-      <string/>
+      <string />
      </property>
      <property name="pixmap">
       <pixmap>images/sliding_rail2.png</pixmap>
@@ -2111,7 +2166,7 @@
          <string notr="true">border-radius: 25px;</string>
         </property>
         <property name="text">
-         <string/>
+         <string />
         </property>
         <property name="icon">
          <iconset>
@@ -2163,7 +2218,7 @@
       </rect>
      </property>
      <property name="text">
-      <string/>
+      <string />
      </property>
      <property name="pixmap">
       <pixmap>images/info.png</pixmap>
@@ -2215,10 +2270,10 @@
       </rect>
      </property>
      <property name="styleSheet">
-      <string notr="true"/>
+      <string notr="true" />
      </property>
      <property name="text">
-      <string/>
+      <string />
      </property>
      <property name="pixmap">
       <pixmap>images/cartesian_system.png</pixmap>
@@ -2237,7 +2292,7 @@
       </rect>
      </property>
      <property name="text">
-      <string/>
+      <string />
      </property>
      <property name="pixmap">
       <pixmap>images/dobot_joints_system.png</pixmap>
@@ -2247,10 +2302,329 @@
      </property>
     </widget>
    </widget>
-  </widget>
+  <widget class="QWidget" name="LaserEngraverTab">
+     <attribute name="title">
+      <string>Laser Engraver</string>
+     </attribute>
+     <widget class="QLabel" name="LaserEngraverTitle">
+      <property name="geometry">
+       <rect>
+        <x>20</x>
+        <y>20</y>
+        <width>300</width>
+        <height>41</height>
+       </rect>
+      </property>
+      <property name="font">
+       <font>
+        <pointsize>18</pointsize>
+        <weight>75</weight>
+        <bold>true</bold>
+       </font>
+      </property>
+      <property name="text">
+       <string>Laser Engraver Setup</string>
+      </property>
+     </widget>
+     <widget class="QPushButton" name="SelectImageButton">
+      <property name="geometry">
+       <rect>
+        <x>20</x>
+        <y>80</y>
+        <width>150</width>
+        <height>40</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Select Image</string>
+      </property>
+     </widget>
+     <widget class="QLabel" name="ImagePathLabel">
+      <property name="geometry">
+       <rect>
+        <x>180</x>
+        <y>80</y>
+        <width>500</width>
+        <height>40</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>No image selected...</string>
+      </property>
+     </widget>
+     
+     <widget class="QLabel" name="SizeLabel">
+      <property name="geometry">
+       <rect>
+        <x>20</x>
+        <y>140</y>
+        <width>200</width>
+        <height>30</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Size (max mm, e.g. 50 for 5cm):</string>
+      </property>
+     </widget>
+     <widget class="QDoubleSpinBox" name="SizeSpinBox">
+      <property name="geometry">
+       <rect>
+        <x>220</x>
+        <y>140</y>
+        <width>100</width>
+        <height>30</height>
+       </rect>
+      </property>
+      <property name="maximum">
+       <double>500.0</double>
+      </property>
+      <property name="value">
+       <double>50.0</double>
+      </property>
+     </widget>
+
+     <widget class="QLabel" name="OffsetXLabel">
+      <property name="geometry">
+       <rect>
+        <x>20</x>
+        <y>190</y>
+        <width>150</width>
+        <height>30</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Offset X (mm):</string>
+      </property>
+     </widget>
+     <widget class="QDoubleSpinBox" name="OffsetXSpinBox">
+      <property name="geometry">
+       <rect>
+        <x>220</x>
+        <y>190</y>
+        <width>100</width>
+        <height>30</height>
+       </rect>
+      </property>
+      <property name="minimum">
+       <double>0.0</double>
+      </property>
+      <property name="maximum">
+       <double>400.0</double>
+      </property>
+      <property name="value">
+       <double>200.0</double>
+      </property>
+     </widget>
+
+     <widget class="QLabel" name="OffsetYLabel">
+      <property name="geometry">
+       <rect>
+        <x>20</x>
+        <y>240</y>
+        <width>150</width>
+        <height>30</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Offset Y (mm):</string>
+      </property>
+     </widget>
+     <widget class="QDoubleSpinBox" name="OffsetYSpinBox">
+      <property name="geometry">
+       <rect>
+        <x>220</x>
+        <y>240</y>
+        <width>100</width>
+        <height>30</height>
+       </rect>
+      </property>
+      <property name="minimum">
+       <double>-200.0</double>
+      </property>
+      <property name="maximum">
+       <double>200.0</double>
+      </property>
+      <property name="value">
+       <double>0.0</double>
+      </property>
+     </widget>
+
+     <widget class="QLabel" name="ZFocalLabel">
+      <property name="geometry">
+       <rect>
+        <x>20</x>
+        <y>290</y>
+        <width>150</width>
+        <height>30</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Z Focal (mm):</string>
+      </property>
+     </widget>
+     <widget class="QDoubleSpinBox" name="ZFocalSpinBox">
+      <property name="geometry">
+       <rect>
+        <x>220</x>
+        <y>290</y>
+        <width>100</width>
+        <height>30</height>
+       </rect>
+      </property>
+      <property name="minimum">
+       <double>-100.0</double>
+      </property>
+      <property name="maximum">
+       <double>200.0</double>
+      </property>
+      <property name="value">
+       <double>-10.0</double>
+      </property>
+     </widget>
+
+     <widget class="QLabel" name="ZSafeLabel">
+      <property name="geometry">
+       <rect>
+        <x>20</x>
+        <y>340</y>
+        <width>150</width>
+        <height>30</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Z Safe (mm):</string>
+      </property>
+     </widget>
+     <widget class="QDoubleSpinBox" name="ZSafeSpinBox">
+      <property name="geometry">
+       <rect>
+        <x>220</x>
+        <y>340</y>
+        <width>100</width>
+        <height>30</height>
+       </rect>
+      </property>
+      <property name="minimum">
+       <double>-10.0</double>
+      </property>
+      <property name="maximum">
+       <double>200.0</double>
+      </property>
+      <property name="value">
+       <double>30.0</double>
+      </property>
+     </widget>
+
+     <widget class="QLabel" name="CoordVelocityLabel">
+      <property name="geometry">
+       <rect>
+        <x>20</x>
+        <y>390</y>
+        <width>150</width>
+        <height>30</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Velocity (mm/s):</string>
+      </property>
+     </widget>
+     <widget class="QDoubleSpinBox" name="CoordVelocitySpinBox">
+      <property name="geometry">
+       <rect>
+        <x>220</x>
+        <y>390</y>
+        <width>100</width>
+        <height>30</height>
+       </rect>
+      </property>
+      <property name="minimum">
+       <double>1.0</double>
+      </property>
+      <property name="maximum">
+       <double>200.0</double>
+      </property>
+      <property name="value">
+       <double>50.0</double>
+      </property>
+     </widget>
+     <widget class="QLabel" name="CoordAccelerationLabel">
+      <property name="geometry">
+       <rect>
+        <x>20</x>
+        <y>440</y>
+        <width>150</width>
+        <height>30</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Acceleration:</string>
+      </property>
+     </widget>
+     <widget class="QDoubleSpinBox" name="CoordAccelerationSpinBox">
+      <property name="geometry">
+       <rect>
+        <x>220</x>
+        <y>440</y>
+        <width>100</width>
+        <height>30</height>
+       </rect>
+      </property>
+      <property name="minimum">
+       <double>1.0</double>
+      </property>
+      <property name="maximum">
+       <double>200.0</double>
+      </property>
+      <property name="value">
+       <double>50.0</double>
+      </property>
+     </widget>
+     <widget class="QPushButton" name="StartEngraverButton">
+      <property name="geometry">
+       <rect>
+        <x>20</x>
+        <y>490</y>
+        <width>300</width>
+        <height>60</height>
+       </rect>
+      </property>
+      <property name="font">
+       <font>
+        <pointsize>16</pointsize>
+        <weight>75</weight>
+        <bold>true</bold>
+       </font>
+      </property>
+      <property name="text">
+       <string>Start Engraving</string>
+      </property>
+     </widget>
+     <widget class="QLabel" name="PreviewImageLabel">
+      <property name="geometry">
+       <rect>
+        <x>380</x>
+        <y>140</y>
+        <width>300</width>
+        <height>300</height>
+       </rect>
+      </property>
+      <property name="frameShape">
+       <enum>QFrame::Box</enum>
+      </property>
+      <property name="text">
+       <string>Image Preview</string>
+      </property>
+      <property name="alignment">
+       <set>Qt::AlignCenter</set>
+      </property>
+      <property name="scaledContents">
+       <bool>true</bool>
+      </property>
+     </widget>
+    </widget></widget>
  </widget>
  <resources>
-  <include location="images/my_resources.qrc"/>
+  <include location="images/my_resources.qrc" />
  </resources>
- <connections/>
+ <connections />
 </ui>

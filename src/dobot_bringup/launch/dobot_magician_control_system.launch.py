@@ -26,14 +26,15 @@ def generate_launch_description():
     if tool_env_var == "None":
          sys.exit("MAGICIAN_TOOL env var is not set!")
 
-    if tool_env_var not in ['none', 'pen', 'suction_cup', 'gripper', 'extended_gripper']:
+    if tool_env_var not in ['none', 'pen', 'suction_cup', 'gripper', 'extended_gripper', 'laser']:
          sys.exit("MAGICIAN_TOOL env var has an incorrect value!")
 
     valid_tool=["'", tool_env_var, "' == 'none'", 'or', \
                 "'", tool_env_var, "' == 'pen'", 'or', \
                 "'", tool_env_var, "' == 'suction_cup'", 'or', \
                 "'", tool_env_var, "' == 'gripper'", 'or', \
-                "'", tool_env_var, "' == 'extended_gripper'"
+                "'", tool_env_var, "' == 'extended_gripper'", 'or', \
+                "'", tool_env_var, "' == 'laser'"
     ]
     # -----------------------------------------------------------------------------------------------------------------
 
@@ -67,6 +68,13 @@ def generate_launch_description():
     suction_cup = Node(
         package='dobot_end_effector',
         executable='suction_cup_server',
+        output='screen',
+        condition = IfCondition(PythonExpression(valid_tool))
+    )
+
+    laser = Node(
+        package='dobot_end_effector',
+        executable='laser_server',
         output='screen',
         condition = IfCondition(PythonExpression(valid_tool))
     )
@@ -142,6 +150,15 @@ def generate_launch_description():
             target_action=suction_cup,
             on_start=[
                 LogInfo(msg='Suction Cup control service started.')
+            ]
+        )
+    )
+
+    laser_event = RegisterEventHandler(
+        OnProcessStart(
+            target_action=laser,
+            on_start=[
+                LogInfo(msg='Laser control service started.')
             ]
         )
     )
@@ -224,6 +241,11 @@ def generate_launch_description():
         actions=[suction_cup]
         )
 
+    laser_sched = TimerAction(
+        period=2.0,
+        actions=[laser]
+        )
+
     homing_sched = TimerAction(
         period=3.0,
         actions=[homing]
@@ -252,6 +274,7 @@ def generate_launch_description():
         alarms_event,
         gripper_event,
         suction_cup_event,
+        laser_event,
         homing_event,
         trajectory_validator_event,
         PTP_action_event,
@@ -260,6 +283,7 @@ def generate_launch_description():
         alarms_sched,
         gripper_sched,
         suction_cup_sched,
+        laser_sched,
         homing_sched,
         trajectory_validator_sched,
         PTP_action_sched,

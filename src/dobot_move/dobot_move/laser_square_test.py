@@ -7,8 +7,8 @@ import time
 MOVL_XYZ = 2
 
 # --- AJUSTA ESTOS VALORES A TU SETUP ANTES DE EJECUTAR ---
-Z_SAFE = 30.0      # altura segura (mm) para desplazarse SIN tocar la superficie, láser apagado
-Z_ENGRAVE = -10.0  # altura de grabado (mm) - DEBES calibrarla físicamente con tu superficie
+Z_SAFE = 0.0      # altura segura (mm) para desplazarse SIN tocar la superficie, láser apagado
+Z_ENGRAVE = -50.0  # altura de grabado (mm) - DEBES calibrarla físicamente con tu superficie
 R = 0.0            # rotación de la muñeca, normalmente irrelevante para láser
 
 # Vértices del cuadrado en el plano XY (mm), en el sistema de coordenadas del robot.

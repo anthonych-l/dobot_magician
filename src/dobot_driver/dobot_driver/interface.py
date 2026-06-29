@@ -1,6 +1,7 @@
 import serial
 import threading
 import sys
+import fcntl
 
 from dobot_driver.message import Message
 
@@ -15,33 +16,53 @@ class Interface:
                 baudrate=115200,
                 parity=serial.PARITY_NONE,
                 stopbits=serial.STOPBITS_ONE,
-                bytesize=serial.EIGHTBITS
+                bytesize=serial.EIGHTBITS,
+                timeout=1.0
             )
         except:
             print("[WARN] Dobot Magician is not connected.")
             sys.exit(1)
 
 
-    def send(self, message):
+    def _transaction(self, message, read_response):
+        # threading.Lock -> exclusión entre hilos del MISMO proceso.
+        # fcntl.flock     -> exclusión entre PROCESOS distintos que abren el mismo
+        #   /dev/ttyACM0 (varios nodos lo hacen). El threading.Lock no sirve entre
+        #   procesos, y sin esto las respuestas serie se entremezclan/corrompen.
+        # El flock se libera solo si el proceso muere (se cierra el fd), no hay deadlock.
         self.lock.acquire()
-        if self.serial.out_waiting != 0:
-            self.serial.reset_output_buffer()
-        self.serial.write(message.package())
-        self.serial.flush()
-        response = Message.read(self.serial)
-        self.lock.release()
-        if response is None:
-            pass
-        else: 
-            return response.params
+        response = None
+        try:
+            fcntl.flock(self.serial.fileno(), fcntl.LOCK_EX)
+            try:
+                # Bajo el lock exclusivo nadie más toca el puerto: descartar restos.
+                self.serial.reset_input_buffer()
+                if self.serial.out_waiting != 0:
+                    self.serial.reset_output_buffer()
+                self.serial.write(message.package())
+                self.serial.flush()
+                # Toda orden del Dobot genera respuesta: la leemos SIEMPRE (aunque no
+                # nos interese) para no dejarla en el buffer y desalinear la siguiente.
+                response = Message.read(self.serial)
+            finally:
+                fcntl.flock(self.serial.fileno(), fcntl.LOCK_UN)
+        except (serial.SerialException, OSError):
+            # Lectura en contención / desconexión: devolver None en vez de matar el nodo.
+            response = None
+        finally:
+            self.lock.release()
+
+        if not read_response or response is None:
+            return None
+        return response.params
+
+    def send(self, message):
+        return self._transaction(message, read_response=True)
 
     def send_only(self, message):
-        self.lock.acquire()
-        if self.serial.out_waiting != 0:
-            self.serial.reset_output_buffer()
-        self.serial.write(message.package())
-        self.serial.flush()
-        self.lock.release()
+        # Igual que send, pero descartando la respuesta. Aun así la leemos (dentro de
+        # _transaction) para mantener el stream serie alineado entre procesos.
+        self._transaction(message, read_response=False)
 
     def connected(self):
         return self.serial.is_open

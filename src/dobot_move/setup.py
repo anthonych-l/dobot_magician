@@ -24,8 +24,9 @@ setup(
     },
     entry_points={
         'console_scripts': [
-            'pick_place = dobot_move.pick_place:main'
-            'laser = dobot_end_effector.laser_square_test:main',  
+            'pick_place = dobot_move.pick_place:main',
+            'laser = dobot_move.laser_square_test:main',
+            'laser_engraver = dobot_move.laser_engraver:main',
         ],
     },
 )
