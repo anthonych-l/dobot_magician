@@ -124,6 +124,8 @@ class DobotControlPanel(QWidget):
         if hasattr(self, 'SelectImageButton'):
             self.SelectImageButton.pressed.connect(self.select_laser_image)
             self.StartEngraverButton.pressed.connect(self.start_laser_engraver)
+            if hasattr(self, 'SquareTestButton'):
+                self.SquareTestButton.pressed.connect(self.start_square_test)
 
         # Speed Tab
         self.Joint1VelSlider.valueChanged.connect(lambda:self.valuechange_joints(self.JT1Vel))
@@ -368,6 +370,13 @@ class DobotControlPanel(QWidget):
         
         self._node.get_logger().info(f"Starting engraver: {command}")
         
+        subprocess.Popen(
+            command, universal_newlines=True, shell=True,
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+    def start_square_test(self):
+        command = 'ros2 run dobot_move laser_square_test'
+        self._node.get_logger().info(f"Starting square test: {command}")
         subprocess.Popen(
             command, universal_newlines=True, shell=True,
             stdout=subprocess.PIPE, stderr=subprocess.PIPE)

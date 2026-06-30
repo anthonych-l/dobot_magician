@@ -44,7 +44,11 @@ class Message:
         params = bytes[5:-1]
         checksum = bytes[-1]
 
-        if id==10 or id==20 or id==13 or id==246:
+        # 10=pose, 13=riel, 20=alarmas, 246=índice de cola.
+        # 81=params PTP, 84=comando PTP: sus respuestas ENCOLADAS llevan el
+        # queuedCmdIndex (necesario para sincronizar el grabado). Son seguros de
+        # parsear porque su parser de respuesta NO-encolada es None.
+        if id==10 or id==20 or id==13 or id==246 or id==81 or id==84:
             verified = Message.verify_checksum([id] + [control] + params, checksum)
 
             if verified:

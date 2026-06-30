@@ -2599,6 +2599,26 @@
        <string>Start Engraving</string>
       </property>
      </widget>
+     <widget class="QPushButton" name="SquareTestButton">
+      <property name="geometry">
+       <rect>
+        <x>380</x>
+        <y>490</y>
+        <width>300</width>
+        <height>60</height>
+       </rect>
+      </property>
+      <property name="font">
+       <font>
+        <pointsize>16</pointsize>
+        <weight>75</weight>
+        <bold>true</bold>
+       </font>
+      </property>
+      <property name="text">
+       <string>Square Test</string>
+      </property>
+     </widget>
      <widget class="QLabel" name="PreviewImageLabel">
       <property name="geometry">
        <rect>

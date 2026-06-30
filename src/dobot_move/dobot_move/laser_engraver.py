@@ -6,19 +6,20 @@ import cv2
 import time
 import sys
 
-MOVL_XYZ = 2
+MOVJ_XYZ = 1   # Movimiento por articulaciones: para REPOSICIONAR (saltos largos entre figuras).
+MOVL_XYZ = 2   # Movimiento lineal (línea recta): solo para los TRAZOS de grabado.
 
 class LaserEngraver(Node):
     def __init__(self):
         super().__init__('laser_engraver')
         
-        self.declare_parameter('image_path', '/home/r11/magician_ros2_control_system_ws/src/dobot_move/dobot_move/pictures/prueba2.png')
+        self.declare_parameter('image_path', '/home/r11/magician_ros2_control_system_ws/src/dobot_move/dobot_move/pictures/prueba6.png')
         self.declare_parameter('size_mm', 60.0)
-        self.declare_parameter('offset_x', 206.0)
-        self.declare_parameter('offset_y', 25.0)
-        self.declare_parameter('z_focal', -15.0)
+        self.declare_parameter('offset_x', 182.0)
+        self.declare_parameter('offset_y', 107.0)
+        self.declare_parameter('z_focal', -50.0)
         self.declare_parameter('z_safe', 0.0) 
-        self.declare_parameter('coord_velocity', 50.0)
+        self.declare_parameter('coord_velocity', 12.0)
         self.declare_parameter('coord_acceleration', 50.0)
         # Separación de parámetros para el efector (Punto 5)
         self.declare_parameter('effector_velocity', 50.0)
@@ -37,22 +38,52 @@ class LaserEngraver(Node):
             self.get_logger().error(f'Fallo al cargar la imagen con OpenCV: {image_path}')
             return None, None, None, None
 
-        _, bw = cv2.threshold(img, 127, 255, cv2.THRESH_BINARY_INV)
-        contours, _ = cv2.findContours(bw, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-        
+        # Otsu elige el umbral automáticamente: no pierde líneas claras/grises como
+        # el umbral fijo 127 (otra causa de detalle faltante en figuras complejas).
+        _, bw = cv2.threshold(img, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
+
+        # Cerrar pequeños huecos para unir trazos casi-conectados ("poco cerrados").
+        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
+        bw = cv2.morphologyEx(bw, cv2.MORPH_CLOSE, kernel)
+
+        # ESQUELETIZAR: adelgazar cada trazo a 1 px para seguir su CENTRO (una sola
+        # pasada por línea) en vez de contornear sus dos bordes (que dibujaba cada
+        # línea doble). Es lo correcto para dibujos de línea (line-art).
+        # NOTA: asume trazos, no rellenos sólidos (un relleno se reduciría a su eje).
+        traced = bw
+        try:
+            traced = cv2.ximgproc.thinning(bw)
+        except Exception as e:
+            self.get_logger().warn(f"Sin thinning (ximgproc no disponible): uso contorno. {e}")
+
+        # RETR_LIST recupera TODOS los trazos (externos E internos). Con RETR_EXTERNAL
+        # se perdía el detalle interior (melena, ojos, líneas dentro de la silueta).
+        contours, _ = cv2.findContours(traced, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
+
         if not contours:
-            self.get_logger().error('No se detectaron contornos en la imagen tras binarizarla.')
+            self.get_logger().error('No se detectaron trazos en la imagen tras procesarla.')
             return None, None, None, None
+
+        height, width = img.shape
+        scale = size_mm / max(width, height)
+
+        # Descartar contornos de ruido demasiado pequeños (< ~1.5 mm de perímetro),
+        # para no quemar motas sueltas en imágenes con detalle.
+        min_perimeter_px = (1.5 / scale) if scale > 0 else 0.0
 
         simplified_contours = []
         for cnt in contours:
+            if cv2.arcLength(cnt, True) < min_perimeter_px:
+                continue
             epsilon = 0.002 * cv2.arcLength(cnt, True)
             approx = cv2.approxPolyDP(cnt, epsilon, True)
-            simplified_contours.append(approx)
-        
-        height, width = img.shape
-        scale = size_mm / max(width, height)
-        
+            if len(approx) >= 2:
+                simplified_contours.append(approx)
+
+        if not simplified_contours:
+            self.get_logger().error('Todos los contornos quedaron filtrados por tamaño.')
+            return None, None, None, None
+
         self.get_logger().info(f'Procesamiento exitoso. Se grabarán {len(simplified_contours)} contornos.')
         return simplified_contours, width, height, scale
 
@@ -73,116 +104,153 @@ class LaserEngraver(Node):
         if not contours:
             return
 
-        # Punto 4: Manejo de excepciones robusto
+        # ENFOQUE CON COLA (queue=True): se encolan todos los comandos y el firmware
+        # los ejecuta en orden. La sincronización/fin se hace con índices ABSOLUTOS de
+        # la cola (queuedCmdIndex), sin asumir que clear_queue reinicie el contador a 0.
         try:
-            # Punto 2: Asegurar la limpieza dando tiempo y manejando fallos silenciosos
             self.get_logger().info("Limpiando alarmas y cola...")
             bot.clear_alarms_state()
             time.sleep(0.5)
             bot.clear_queue()
             time.sleep(0.5)
             bot.start_queue()
-            
-            # Reset the local command counter
-            queued_commands = 0
 
-            def read_queue_index():
-                # get_current_queue_index devuelve un entero escalar (queuedCmdIndex)
-                # o None si la respuesta no se pudo leer/parsear.
+            last_index = None        # queuedCmdIndex del último comando encolado con éxito
+            OUTSTANDING_MAX = 32     # máx. de comandos por delante del que se ejecuta
+
+            def remember(result):
+                # Cada comando encolado devuelve su queuedCmdIndex.
+                # Dependiendo de la función, puede ser un int o una lista [index].
+                nonlocal last_index
+                if isinstance(result, (list, tuple)) and len(result) > 0:
+                    last_index = result[0]
+                elif isinstance(result, int):
+                    last_index = result
+
+            def read_current_index():
                 idx = bot.get_current_queue_index()
                 if isinstance(idx, (list, tuple)):
                     idx = idx[0] if len(idx) > 0 else None
-                return idx
+                return idx if isinstance(idx, int) else None
 
-            def wait_for_queue_space():
-                # Limitar a ~100 comandos pendientes. Tope por tiempo: si el índice
-                # no se puede leer, avanzamos en vez de colgarnos para siempre (lo que
-                # dejaría al robot congelado con el láser encendido).
+            def active_alarm_codes():
+                # Lista de códigos de alarma activos. La cola del firmware se CONGELA
+                # cuando salta cualquiera; así sabemos cuál es y por qué se detuvo.
+                state = bot.get_alarms_state()
+                codes = []
+                if isinstance(state, (list, tuple)):
+                    for i, byte in enumerate(state):
+                        for j in range(8):
+                            if int(byte) & (1 << j):
+                                codes.append(8 * i + j)
+                return codes
+
+            def throttle():
+                # Esperar a no encolar demasiado por delante (evita desbordar la cola).
+                # Tope por tiempo para no colgarnos nunca.
+                if last_index is None:
+                    return
                 start = time.time()
                 while rclpy.ok():
-                    current_idx = read_queue_index()
-                    if current_idx is not None and queued_commands - current_idx < 100:
+                    cur = read_current_index()
+                    if cur is not None and (last_index - cur) < OUTSTANDING_MAX:
                         break
-                    if time.time() - start > 2.0:
+                    if time.time() - start > 120.0:
                         break
                     rclpy.spin_once(self, timeout_sec=0.05)
 
-            bot.set_point_to_point_coordinate_params(
-                coord_vel, eff_vel,
-                coord_acc, eff_acc,
-                queue=True
-            )
-            queued_commands += 1
+            # --- helpers de sincronización láser/movimiento ---
+            def queue_move(mode, x, y, z):
+                # Encola un movimiento y devuelve su índice en la cola (o None).
+                remember(bot.set_point_to_point_command(mode, x, y, z, 0.0, queue=True))
+                return last_index
 
-            # Asegurar láser apagado al inicio
-            bot.set_end_effector_laser(False, False, queue=True)
-            queued_commands += 1
+            def wait_queue_reach(target_idx, stall_timeout=15.0):
+                # Espera a que la cola EJECUTE hasta target_idx (ese movimiento terminó).
+                # True si llegó; False si salta una alarma o el índice no avanza en
+                # stall_timeout s (atasco). No usa tope absoluto: una traza larga sigue
+                # avanzando el índice, así que no se aborta por error.
+                if target_idx is None:
+                    return False
+                last = None
+                last_change = time.time()
+                while rclpy.ok():
+                    cur = read_current_index()
+                    if cur is not None:
+                        if cur >= target_idx:
+                            return True
+                        if cur != last:
+                            last = cur
+                            last_change = time.time()
+                    stalled = time.time() - last_change
+                    if stalled > 2.0 and active_alarm_codes():
+                        return False
+                    if stalled > stall_timeout:
+                        return False
+                    rclpy.spin_once(self, timeout_sec=0.05)
+                return False
 
-            bot.set_point_to_point_command(MOVL_XYZ, offset_x, offset_y, z_safe, 0.0, queue=True)
-            queued_commands += 1
-            bot.set_point_to_point_command(MOVL_XYZ, offset_x, offset_y, z_focal, 0.0, queue=True)
-            queued_commands += 1
+            def point_to_robot(point):
+                px, py = point[0]
+                rob_y = offset_y - ((px - (w / 2)) * scale)
+                rob_x = offset_x + ((py - (h / 2)) * scale)
+                return rob_x, rob_y
 
-            for cnt in contours:
+            # Parámetros de velocidad (encolado) y láser apagado (INMEDIATO, seguridad).
+            remember(bot.set_point_to_point_coordinate_params(
+                coord_vel, eff_vel, coord_acc, eff_acc, queue=True))
+            bot.set_end_effector_laser(False, False, queue=False)
+
+            # Posición segura inicial (reposicionamiento -> MOVJ)
+            queue_move(MOVJ_XYZ, offset_x, offset_y, z_safe)
+
+            total = len(contours)
+            for c_idx, cnt in enumerate(contours):
                 if len(cnt) < 2:
                     continue
-                    
-                for i, point in enumerate(cnt):
-                    wait_for_queue_space()
-                    
-                    px, py = point[0]
-                    rob_y = offset_y - ((px - (w/2)) * scale)
-                    rob_x = offset_x + ((py - (h/2)) * scale)
 
-                    if i == 0:
-                        # Ir al primer punto del contorno con láser apagado (ya está apagado desde el loop anterior)
-                        # Punto 6: Evitamos doble comando de apagado redundante
-                        bot.set_point_to_point_command(MOVL_XYZ, rob_x, rob_y, z_focal, 0.0, queue=True)
-                        queued_commands += 1
-                        
-                        # Encender láser para empezar el trazo
-                        bot.set_end_effector_laser(True, True, queue=True)
-                        queued_commands += 1
-                    else:
-                        bot.set_point_to_point_command(MOVL_XYZ, rob_x, rob_y, z_focal, 0.0, queue=True)
-                        queued_commands += 1
+                # 1) Reposicionar al PRIMER punto (MOVJ, láser apagado) y ESPERAR a que
+                #    el robot llegue de verdad antes de tocar el láser.
+                rob_x, rob_y = point_to_robot(cnt[0])
+                idx_start = queue_move(MOVJ_XYZ, rob_x, rob_y, z_focal)
+                if not wait_queue_reach(idx_start):
+                    codes = active_alarm_codes()
+                    self.get_logger().warn(
+                        f"Contorno {c_idx+1}/{total}: no se alcanzó el inicio "
+                        f"(alarma {[hex(c) for c in codes]}); se omite.")
+                    bot.set_end_effector_laser(False, False, queue=False)
+                    bot.clear_alarms_state()
+                    continue
 
-                # Apagar láser al terminar este contorno
-                bot.set_end_effector_laser(False, False, queue=True)
-                queued_commands += 1
+                # 2) Robot YA en el inicio -> LÁSER ON inmediato (perfectamente sincronizado).
+                bot.set_end_effector_laser(True, True, queue=False)
+
+                # 3) Encolar toda la traza del contorno (movimiento suave, MOVL),
+                #    cerrando el contorno al volver al primer punto.
+                idx_end = idx_start
+                for point in list(cnt[1:]) + [cnt[0]]:
+                    throttle()
+                    rob_x, rob_y = point_to_robot(point)
+                    idx_end = queue_move(MOVL_XYZ, rob_x, rob_y, z_focal)
+
+                # 4) Esperar a que termine la traza y LÁSER OFF inmediato (también si se
+                #    congela: el comando inmediato apaga el láser aunque la cola esté frita).
+                reached = wait_queue_reach(idx_end)
+                bot.set_end_effector_laser(False, False, queue=False)
+                if reached:
+                    self.get_logger().info(f"Contorno {c_idx+1}/{total} completado.")
+                else:
+                    codes = active_alarm_codes()
+                    self.get_logger().warn(
+                        f"Contorno {c_idx+1}/{total}: traza interrumpida "
+                        f"(alarma {[hex(c) for c in codes]}).")
+                    bot.clear_alarms_state()
 
             # Volver a zona segura
-            wait_for_queue_space()
-            bot.set_point_to_point_command(MOVL_XYZ, offset_x, offset_y, z_safe, 0.0, queue=True)
-            queued_commands += 1
-            
-            # Iniciar ejecución (ya iniciado)
-            self.get_logger().info(f"Enviando {queued_commands} comandos a la cola de hardware. Ejecución en progreso...")
-
-            # Punto 1: Esperar activamente a que el robot vacíe la cola antes de destruir el nodo
-            self.get_logger().info("Esperando a que el robot complete el trabajo...")
-            last_idx = -1
-            stall_start = time.time()
-            while rclpy.ok():
-                current_idx = read_queue_index()
-                if current_idx is not None:
-                    # La cola del Dobot empieza en 0 y sube. Si current_idx alcanza el total enviado (o casi), terminó.
-                    if current_idx >= queued_commands - 1:
-                        self.get_logger().info("¡Trabajo de grabado finalizado con éxito!")
-                        break
-                    # Reiniciar el detector de atasco cada vez que la cola avanza.
-                    if current_idx != last_idx:
-                        last_idx = current_idx
-                        stall_start = time.time()
-
-                # Seguridad: si la cola no avanza en mucho tiempo, salir para
-                # apagar el láser (en el finally) en vez de quedarnos colgados.
-                if time.time() - stall_start > 15.0:
-                    self.get_logger().warn("La cola no avanza; finalizando por seguridad.")
-                    break
-
-                # Checkeamos rclpy.spin_once por si hay callbacks pendientes o si se presiona Ctrl+C
-                rclpy.spin_once(self, timeout_sec=0.5)
+            self.get_logger().info("Grabado finalizado. Volviendo a zona segura...")
+            idx_final = queue_move(MOVJ_XYZ, offset_x, offset_y, z_safe)
+            wait_queue_reach(idx_final)
+            self.get_logger().info("¡Trabajo de grabado finalizado con éxito!")
 
         except Exception as e:
             self.get_logger().error(f"Fallo crítico durante la ejecución: {str(e)}")

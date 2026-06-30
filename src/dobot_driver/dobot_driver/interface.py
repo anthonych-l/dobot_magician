@@ -46,8 +46,9 @@ class Interface:
                 response = Message.read(self.serial)
             finally:
                 fcntl.flock(self.serial.fileno(), fcntl.LOCK_UN)
-        except (serial.SerialException, OSError):
-            # Lectura en contención / desconexión: devolver None en vez de matar el nodo.
+        except Exception:
+            # Lectura en contención / desconexión / frame corrupto: devolver None en
+            # vez de matar el nodo (el comando ya se escribió igualmente).
             response = None
         finally:
             self.lock.release()
@@ -60,9 +61,10 @@ class Interface:
         return self._transaction(message, read_response=True)
 
     def send_only(self, message):
-        # Igual que send, pero descartando la respuesta. Aun así la leemos (dentro de
-        # _transaction) para mantener el stream serie alineado entre procesos.
-        self._transaction(message, read_response=False)
+        # Antes era "fire and forget", pero NO leer la respuesta desalinea el stream
+        # serie. Ahora leemos y devolvemos los params igual que send(): para un comando
+        # encolado eso es su queuedCmdIndex, que el grabador usa para sincronizarse.
+        return self._transaction(message, read_response=True)
 
     def connected(self):
         return self.serial.is_open
