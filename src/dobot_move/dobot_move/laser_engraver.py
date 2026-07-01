@@ -14,7 +14,14 @@ class LaserEngraver(Node):
         super().__init__('laser_engraver')
         
         self.declare_parameter('image_path', '/home/r11/magician_ros2_control_system_ws/src/dobot_move/dobot_move/pictures/prueba6.png')
+        # size_mm es el LADO MAYOR del grabado. La escala es UNIFORME (misma en
+        # X e Y), así que una imagen rectangular conserva su proporción: NO se
+        # estira a un cuadrado. Ej.: imagen 800x400 px con size_mm=60 -> 60x30 mm.
         self.declare_parameter('size_mm', 60.0)
+        # Alternativa: caja máxima disponible en mm (0 = usar size_mm). Si se
+        # define, el grabado se ajusta DENTRO de la caja sin deformarse.
+        self.declare_parameter('max_width_mm', 0.0)
+        self.declare_parameter('max_height_mm', 0.0)
         self.declare_parameter('offset_x', 182.0)
         self.declare_parameter('offset_y', 107.0)
         self.declare_parameter('z_focal', -50.0)
@@ -26,7 +33,6 @@ class LaserEngraver(Node):
         self.declare_parameter('effector_acceleration', 50.0)
         
         self.get_logger().info('Iniciando nodo grabador láser...')
-        self.run_engraver()
 
     def process_image(self, image_path, size_mm):
         if not os.path.exists(image_path):
@@ -65,7 +71,26 @@ class LaserEngraver(Node):
             return None, None, None, None
 
         height, width = img.shape
-        scale = size_mm / max(width, height)
+
+        # Escala UNIFORME (idéntica en X e Y) -> la proporción de la imagen se
+        # conserva SIEMPRE y una imagen rectangular sale rectangular.
+        max_w_mm = float(self.get_parameter('max_width_mm').value)
+        max_h_mm = float(self.get_parameter('max_height_mm').value)
+        if max_w_mm > 0.0 or max_h_mm > 0.0:
+            # Ajustar dentro de la caja disponible (el lado más restrictivo manda).
+            ratios = []
+            if max_w_mm > 0.0:
+                ratios.append(max_w_mm / width)
+            if max_h_mm > 0.0:
+                ratios.append(max_h_mm / height)
+            scale = min(ratios)
+        else:
+            # size_mm dimensiona el lado MAYOR; el menor queda proporcional.
+            scale = size_mm / max(width, height)
+
+        self.get_logger().info(
+            f'Imagen {width}x{height} px -> grabado {width * scale:.1f} x '
+            f'{height * scale:.1f} mm (proporción conservada).')
 
         # Descartar contornos de ruido demasiado pequeños (< ~1.5 mm de perímetro),
         # para no quemar motas sueltas en imágenes con detalle.
@@ -84,8 +109,26 @@ class LaserEngraver(Node):
             self.get_logger().error('Todos los contornos quedaron filtrados por tamaño.')
             return None, None, None, None
 
+        simplified_contours = self.order_contours(simplified_contours)
         self.get_logger().info(f'Procesamiento exitoso. Se grabarán {len(simplified_contours)} contornos.')
         return simplified_contours, width, height, scale
+
+    def order_contours(self, contours):
+        # Ordenar por vecino más cercano: cada contorno empieza cerca de donde
+        # terminó el anterior. Menos viajes en vacío -> grabado más rápido y
+        # menos reposicionamientos largos del brazo.
+        remaining = list(contours)
+        ordered = []
+        cur = (0.0, 0.0)
+        while remaining:
+            best = min(
+                range(len(remaining)),
+                key=lambda i: (remaining[i][0][0][0] - cur[0]) ** 2
+                            + (remaining[i][0][0][1] - cur[1]) ** 2)
+            cnt = remaining.pop(best)
+            ordered.append(cnt)
+            cur = (float(cnt[0][0][0]), float(cnt[0][0][1]))
+        return ordered
 
     def run_engraver(self):
         image_path = self.get_parameter('image_path').value
@@ -103,6 +146,17 @@ class LaserEngraver(Node):
         # Punto 3: Log mudo solucionado. Si no hay contornos, el error se loguea en process_image.
         if not contours:
             return
+
+        # Aviso preventivo: si alguna esquina del grabado queda fuera del alcance
+        # del Magician (~315 mm de radio), el firmware congelará la cola con
+        # alarma a mitad de trazo y el dibujo saldrá incompleto/deformado.
+        half_x = (h / 2) * scale   # la altura de la imagen se traza sobre el eje X del robot
+        half_y = (w / 2) * scale   # el ancho de la imagen se traza sobre el eje Y del robot
+        r_far = ((abs(offset_x) + half_x) ** 2 + (abs(offset_y) + half_y) ** 2) ** 0.5
+        if r_far > 315.0:
+            self.get_logger().warn(
+                f'La esquina más lejana del grabado queda a {r_far:.0f} mm de la base '
+                f'(límite ~315 mm): reduce size_mm o acerca offset_x/offset_y.')
 
         # ENFOQUE CON COLA (queue=True): se encolan todos los comandos y el firmware
         # los ejecuta en orden. La sincronización/fin se hace con índices ABSOLUTOS de
@@ -266,6 +320,7 @@ class LaserEngraver(Node):
 def main(args=None):
     rclpy.init(args=args)
     node = LaserEngraver()
+    node.run_engraver()
     # Ahora sí podemos destruir el nodo tranquilamente porque run_engraver espera a que termine.
     node.destroy_node()
     if rclpy.ok():
