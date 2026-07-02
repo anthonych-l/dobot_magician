@@ -19,3 +19,4 @@ log/
 .env
 .vscode/
 .devcontainer
+.claude
