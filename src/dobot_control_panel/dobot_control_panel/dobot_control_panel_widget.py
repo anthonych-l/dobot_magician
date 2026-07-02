@@ -63,6 +63,12 @@ class DobotControlPanel(QWidget):
             self.joints_positions_callback,
             10)
 
+        self.subscription_laser_progress = self._node.create_subscription(
+            String,
+            '/dobot_laser_progress',
+            self.laser_progress_callback,
+            10)
+
         self.gripper_state_publ = self._node.create_publisher(GripperStatus, 'gripper_status_rviz', 10)
 
         self.dobot_current_joint_states = []
@@ -121,9 +127,12 @@ class DobotControlPanel(QWidget):
 
         # Laser Engraver Tab
         self.engraver_image_path = ""
+        self.laser_process = None
         if hasattr(self, 'SelectImageButton'):
             self.SelectImageButton.pressed.connect(self.select_laser_image)
             self.StartEngraverButton.pressed.connect(self.start_laser_engraver)
+            if hasattr(self, 'StopEngraverButton'):
+                self.StopEngraverButton.pressed.connect(self.stop_laser_engraver)
             if hasattr(self, 'SquareTestButton'):
                 self.SquareTestButton.pressed.connect(self.start_square_test)
 
@@ -170,6 +179,10 @@ class DobotControlPanel(QWidget):
         bot.set_jog_common_params(100, 1) # (vel_ratio, acc_ratio)
         bot.set_jog_joint_params([100, 100, 100, 100], [100, 100, 100, 100])
         bot.set_jog_coordinate_params([100, 100, 100, 100], [100, 100, 100, 100])
+
+    def laser_progress_callback(self, msg):
+        if hasattr(self, 'LaserProgressLabel'):
+            self.LaserProgressLabel.setText(msg.data)
 
 
 
@@ -370,9 +383,27 @@ class DobotControlPanel(QWidget):
         
         self._node.get_logger().info(f"Starting engraver: {command}")
         
-        subprocess.Popen(
+        self.laser_process = subprocess.Popen(
             command, universal_newlines=True, shell=True,
             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+    def stop_laser_engraver(self):
+        if self.laser_process:
+            self.laser_process.terminate()
+            self.laser_process = None
+        
+        bot.stop_queue(force=True)
+        bot.clear_queue()
+        bot.set_end_effector_laser(False, False, queue=False)
+        
+        if hasattr(self, 'LaserProgressLabel'):
+            self.LaserProgressLabel.setText("Progreso: Detenido")
+            
+        msg = QMessageBox()
+        msg.setIcon(QMessageBox.Information)
+        msg.setText("Grabado Detenido")
+        msg.setInformativeText("El grabado láser ha sido cancelado.")
+        msg.exec_()
 
     def start_square_test(self):
         command = 'ros2 run dobot_move laser_square_test'

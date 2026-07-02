@@ -5,6 +5,7 @@ from dobot_driver.dobot_handle import bot
 import cv2
 import time
 import sys
+from std_msgs.msg import String
 
 MOVJ_XYZ = 1   # Movimiento por articulaciones: para REPOSICIONAR (saltos largos entre figuras).
 MOVL_XYZ = 2   # Movimiento lineal (línea recta): solo para los TRAZOS de grabado.
@@ -12,6 +13,8 @@ MOVL_XYZ = 2   # Movimiento lineal (línea recta): solo para los TRAZOS de graba
 class LaserEngraver(Node):
     def __init__(self):
         super().__init__('laser_engraver')
+        
+        self.progress_pub = self.create_publisher(String, '/dobot_laser_progress', 10)
         
         self.declare_parameter('image_path', '/home/r11/magician_ros2_control_system_ws/src/dobot_move/dobot_move/pictures/prueba6.png')
         # size_mm es el LADO MAYOR del grabado. La escala es UNIFORME (misma en
@@ -150,8 +153,8 @@ class LaserEngraver(Node):
         # Aviso preventivo: si alguna esquina del grabado queda fuera del alcance
         # del Magician (~315 mm de radio), el firmware congelará la cola con
         # alarma a mitad de trazo y el dibujo saldrá incompleto/deformado.
-        half_x = (h / 2) * scale   # la altura de la imagen se traza sobre el eje X del robot
-        half_y = (w / 2) * scale   # el ancho de la imagen se traza sobre el eje Y del robot
+        half_x = (w / 2) * scale   # el ancho de la imagen se traza sobre el eje X del robot
+        half_y = (h / 2) * scale   # la altura de la imagen se traza sobre el eje Y del robot
         r_far = ((abs(offset_x) + half_x) ** 2 + (abs(offset_y) + half_y) ** 2) ** 0.5
         if r_far > 315.0:
             self.get_logger().warn(
@@ -246,8 +249,8 @@ class LaserEngraver(Node):
 
             def point_to_robot(point):
                 px, py = point[0]
-                rob_y = offset_y - ((px - (w / 2)) * scale)
-                rob_x = offset_x + ((py - (h / 2)) * scale)
+                rob_x = offset_x + ((px - (w / 2)) * scale)
+                rob_y = offset_y - ((py - (h / 2)) * scale)
                 return rob_x, rob_y
 
             # Parámetros de velocidad (encolado) y láser apagado (INMEDIATO, seguridad).
@@ -259,9 +262,24 @@ class LaserEngraver(Node):
             queue_move(MOVJ_XYZ, offset_x, offset_y, z_safe)
 
             total = len(contours)
+            start_time = time.time()
             for c_idx, cnt in enumerate(contours):
                 if len(cnt) < 2:
                     continue
+
+                elapsed = time.time() - start_time
+                if c_idx > 0:
+                    est_total = elapsed / c_idx * total
+                    remaining = int(est_total - elapsed)
+                    mins, secs = divmod(remaining, 60)
+                    time_str = f"{mins:02d}:{secs:02d}"
+                else:
+                    time_str = "--:--"
+                
+                progress_pct = int((c_idx / total) * 100)
+                msg = String()
+                msg.data = f"Progreso: {progress_pct}% - Faltan: {time_str}"
+                self.progress_pub.publish(msg)
 
                 # 1) Reposicionar al PRIMER punto (MOVJ, láser apagado) y ESPERAR a que
                 #    el robot llegue de verdad antes de tocar el láser.
@@ -305,6 +323,10 @@ class LaserEngraver(Node):
             idx_final = queue_move(MOVJ_XYZ, offset_x, offset_y, z_safe)
             wait_queue_reach(idx_final)
             self.get_logger().info("¡Trabajo de grabado finalizado con éxito!")
+            
+            msg = String()
+            msg.data = "Progreso: 100% - Completado"
+            self.progress_pub.publish(msg)
 
         except Exception as e:
             self.get_logger().error(f"Fallo crítico durante la ejecución: {str(e)}")
